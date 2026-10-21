@@ -16,6 +16,15 @@ python -m uvicorn server.app.main:app --host 127.0.0.1 --port 8001
 Database SQLite dibuat otomatis di `server/data/billing.db` saat pertama
 jalankan (termasuk seed paket Bulanan/Tahunan/Selamanya).
 
+## Deploy ke Hugging Face Spaces
+
+Server billing bisa dititipkan gratis di Hugging Face Spaces (SDK Docker,
+port 7860) sehingga dapat URL publik tanpa ngrok/VPS. Berkas deploy:
+`Dockerfile`, `entrypoint.sh`, `requirements.txt` (dependensi server saja),
+panduan variabel di `HF_SPACES.md`. Tanpa Docker lokal pun bisa — cukup
+buat Space Docker baru dan push isi folder ini (paket `server/` tetap di
+subfolder `server/`).
+
 ## Akses publik (ngrok)
 
 Server berjalan di `127.0.0.1` sehingga hanya bisa diakses mesin itu sendiri.

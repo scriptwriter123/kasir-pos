@@ -1,0 +1,3 @@
+# Selalu simpan skrip shell dengan baris LF agar aman dijalankan di Linux/Docker
+*.sh text eol=lf
+Dockerfile text eol=lf
