@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Order {{ order.order_code }} — AnjayRetailSoft{% endblock %}
+{% block content %}
+<div class="card" style="max-width:620px;margin:30px auto">
+  <h1>Order <code>{{ order.order_code }}</code></h1>
+  {% if flash_status %}
+    <div class="alert {{ 'ok' if flash_status == 'paid' else 'error' }}" style="margin-top:16px">
+      {% if flash_status == "paid" %}
+        Pembayaran diterima. Lisensi telah diterbitkan — muat ulang halaman bila tombol di bawah tidak langsung mengarah ke dashboard.
+      {% elif flash_status == "pending" %}
+        Pembayaran belum terkonfirmasi. Bila Anda baru saja membayar, tunggu beberapa detik lalu periksa ulang.
+      {% else %}
+        {{ flash_message or "Gagal memeriksa status pembayaran." }}
+      {% endif %}
+    </div>
+  {% endif %}
+  <p>Status: <span class="badge {{ order.status }}">{{ order.status }}</span></p>
+  <table>
+    <tr><th>Paket</th><td>{{ order.plan_code }}</td></tr>
+    <tr><th>Nominal</th><td>Rp {{ "{:,}".format(order.amount_idr).replace(",", ".") }}</td></tr>
+    <tr><th>Dibuat</th><td>{{ order.created_at.strftime("%d %b %Y %H:%M") }}</td></tr>
+    {% if order.paid_at %}
+    <tr><th>Dibayar</th><td>{{ order.paid_at.strftime("%d %b %Y %H:%M") }}</td></tr>
+    {% endif %}
+  </table>
+
+  {% if order.status == "paid" %}
+    <div class="alert ok" style="margin-top:16px">
+      Pembayaran diterima. Lisensi telah diterbitkan.
+    </div>
+    <a class="btn" href="/dashboard">Kembali ke Dashboard &amp; Unduh Lisensi</a>
+  {% elif order.status == "pending" %}
+    {% if order.snap_token %}
+      <p class="muted" style="margin-top:16px;font-size:14px">
+        Klik tombol di bawah untuk membuka pilihan pembayaran Midtrans
+        (QRIS, Virtual Account, e-wallet, dll).
+      </p>
+      <button class="btn" id="pay-button" type="button"
+              data-snap-token="{{ order.snap_token }}">Bayar Sekarang (Midtrans)</button>
+      <a class="btn secondary" href="/dashboard" style="margin-left:8px">Kembali</a>
+      <script src="{{ snap_js_url }}"
+              data-client-key="{{ snap_client_key }}"></script>
+    {% else %}
+      <a class="btn secondary" href="/dashboard" style="margin-top:16px">Kembali</a>
+    {% endif %}
+
+    <div style="margin-top:24px;padding-top:18px;border-top:1px solid #3a3a42">
+      <h3 style="margin:0 0 6px">Bayar via ATM / Transfer Bank <span class="muted">(Simulasi)</span></h3>
+      <p class="muted" style="font-size:14px;margin:0 0 12px">
+        Salin nomor Virtual Account di bawah, transfer tepat sebesar
+        nominal tagihan, lalu klik tombol konfirmasi.
+      </p>
+      <table>
+        <tr><th>Bank</th><td>{{ simulated_va_bank }}</td></tr>
+        <tr>
+          <th>No. Virtual Account</th>
+          <td>
+            <code id="va-display" style="font-size:17px;letter-spacing:2px">{{ va_number_display }}</code>
+            <button class="btn secondary small" type="button" id="copy-va"
+                    data-va="{{ va_number }}" style="margin-left:8px">Salin</button>
+          </td>
+        </tr>
+        <tr>
+          <th>Nominal Transfer</th>
+          <td><strong>Rp {{ "{:,}".format(order.amount_idr).replace(",", ".") }}</strong> (tepat)</td>
+        </tr>
+      </table>
+      <form method="post" action="/orders/{{ order.order_code }}/simulasi-bayar" style="margin-top:14px">
+        <button class="btn" type="submit">Saya Sudah Bayar — Aktifkan Lisensi</button>
+      </form>
+    </div>
+
+    <form method="post" action="/orders/{{ order.order_code }}/check"
+          style="margin-top:20px">
+      <button class="btn secondary" type="submit">Periksa Status Pembayaran (Midtrans)</button>
+      <span class="muted" style="font-size:13px;margin-left:8px">
+        Pembayaran Midtrans terverifikasi otomatis; ATM simulasi pakai tombol di atas.
+      </span>
+    </form>
+    <script src="/static/order.js"></script>
+  {% else %}
+    <p class="muted" style="margin-top:16px;font-size:14px">
+      Selesaikan pembayaran sesuai instruksi gateway. POS yang sedang
+      berjalan memeriksa status secara otomatis; tombol di bawah memaksa
+      pemeriksaan ulang bila Anda ingin hasil segera.
+    </p>
+    <form method="post" action="/orders/{{ order.order_code }}/check">
+      <button class="btn" type="submit">Periksa Status Pembayaran</button>
+      <a class="btn secondary" href="/dashboard">Kembali</a>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

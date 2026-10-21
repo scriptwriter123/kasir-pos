@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}AnjayRetailSoft — Langganan{% endblock %}</title>
+  <style>
+    :root { --accent: #2563eb; --accent-hover: #1d4ed8; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --muted: #64748b; --danger: #dc2626; --ok: #16a34a; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    header { background: var(--card); border-bottom: 1px solid #e2e8f0; padding: 14px 24px; display: flex; align-items: center; gap: 18px; }
+    header .brand { font-weight: 700; font-size: 17px; color: var(--accent); text-decoration: none; }
+    header nav { display: flex; gap: 14px; margin-left: auto; align-items: center; }
+    header nav a { color: var(--muted); text-decoration: none; font-size: 14px; }
+    header nav a:hover { color: var(--text); }
+    main { max-width: 980px; margin: 32px auto; padding: 0 20px; }
+    .card { background: var(--card); border: 1px solid #e2e8f0; border-radius: 12px; padding: 22px; margin-bottom: 20px; }
+    h1 { font-size: 26px; margin: 0 0 8px; }
+    h2 { font-size: 19px; margin: 0 0 14px; }
+    p.muted { color: var(--muted); }
+    .btn { display: inline-block; background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 18px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; }
+    .btn:hover { background: var(--accent-hover); }
+    .btn.secondary { background: #e2e8f0; color: var(--text); }
+    .btn.danger { background: var(--danger); }
+    .btn.small { padding: 6px 12px; font-size: 13px; }
+    form.stack label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 4px; }
+    input[type=email], input[type=password], input[type=text], select, input[type=file] {
+      width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; background: #fff;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+    th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .badge.active { background: #dcfce7; color: var(--ok); }
+    .badge.admin { background: #dbeafe; color: var(--accent); }
+    .badge.none { background: #f1f5f9; color: var(--muted); }
+    .badge.pending { background: #fef9c3; color: #a16207; }
+    .badge.expired, .badge.revoked, .badge.failed { background: #fee2e2; color: var(--danger); }
+    .badge.paid { background: #dcfce7; color: var(--ok); }
+    .alert { border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 14px; }
+    .alert.error { background: #fee2e2; color: var(--danger); }
+    .alert.ok { background: #dcfce7; color: var(--ok); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+    .price { font-size: 28px; font-weight: 700; margin: 8px 0; }
+    .price small { font-size: 14px; color: var(--muted); font-weight: 500; }
+    footer { text-align: center; color: var(--muted); font-size: 13px; padding: 26px 0 40px; }
+    code { background: #f1f5f9; padding: 2px 6px; border-radius: 5px; font-size: 13px; word-break: break-all; }
+  </style>
+</head>
+<body>
+<header>
+  <a class="brand" href="/">AnjayRetailSoft</a>
+  <nav>
+    {% if customer %}
+      <a href="/dashboard">Dashboard</a>
+      {% if customer.is_admin %}<a href="/admin">Admin</a>{% endif %}
+      <span class="muted" style="font-size:13px;color:var(--muted)">{{ customer.email }}</span>
+      <form action="/logout" method="post" style="display:inline">
+        <button class="btn secondary small" type="submit">Keluar</button>
+      </form>
+    {% else %}
+      <a href="/login">Masuk</a>
+      <a class="btn small" href="/register">Daftar</a>
+    {% endif %}
+  </nav>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+<footer>AnjayRetailSoft — aktivasi &amp; langganan</footer>
+</body>
+</html>

@@ -1,0 +1,68 @@
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# Local configuration, credentials, and signing artifacts
+.env
+.env.*
+!.env.example
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.posreq
+*.poslic
+license-signing-private.pem
+license_public_key.pem.old
+*private-key*
+*private_key*
+*_private.pem
+*-private.pem
+*.p12
+*.pfx
+*.p8
+*.jks
+*.keystore
+
+# Local validation data and generated distributions/installers
+.migration-validation/
+dist/
+build/
+*.exe
+
+# Server billing database (lokal, bukan bagian source)
+server/data/
+
+# Jejak simulasi E2E otomatis (scripts/e2e-otomatis.ps1)
+.e2e-real/
+.e2e-gui/
+.probe/
+
+# Node modules untuk MCP Playwright & artefak E2E GUI
+node_modules/
+e2e_shots/
+e2e_videos/
+
+# Log proses lokal (build PyInstaller, uvicorn server billing)
+*.log
+
+# Local reference documents are not part of the application source
+*.pdf
+
+# Konfigurasi tool lokal (berisi path absolut mesin ini)
+opencode.json
+opencode_test.txt
+start_opencode_pos.bat
+
+# Berkas scratch / hasil uji lokal
+warn
+*_stderr.txt
+*_stdout.txt
+pytest_md_*.txt
+ngrok.text
+PROJECT_STRUCTURE.txt
+e2e-headed-failure.png

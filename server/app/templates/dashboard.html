@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — AnjayRetailSoft{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<p class="muted">Kelola perangkat POS, langganan, dan unduh file lisensi.</p>
+
+{% if notice %}<div class="alert ok">{{ notice }}</div>{% endif %}
+{% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+
+<div class="card">
+  <h2>1. Unggah Permintaan Lisensi (.posreq)</h2>
+  <p class="muted" style="font-size:14px">
+    Ambil file dari aplikasi POS: <strong>Simpan Permintaan Lisensi</strong>.
+  </p>
+  <form method="post" action="/devices" enctype="multipart/form-data" class="stack">
+    <input type="file" name="posreq" accept=".posreq" required>
+    <p><button class="btn" type="submit">Unggah</button></p>
+  </form>
+  {% if devices %}
+  <table style="margin-top:14px">
+    <tr><th>Nama Toko</th><th>ID Instalasi</th><th>Status</th></tr>
+    {% for device in devices %}
+    <tr>
+      <td>{{ device.store_name }}</td>
+      <td><code>{{ device.installation_id }}</code></td>
+      <td>{% if device.is_active %}<span class="badge active">aktif</span>{% else %}<span class="badge revoked">nonaktif</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>2. Langganan</h2>
+  {% if licenses %}
+  <table>
+    <tr>
+      <th>Toko</th><th>Paket</th><th>Status</th><th>Berlaku s/d</th><th></th>
+    </tr>
+    {% for record in licenses %}
+    {% set status = status_label(record) %}
+    <tr>
+      <td>{{ record.store_name }}</td>
+      <td>{{ record.plan_code }}</td>
+      <td><span class="badge {{ status }}">{{ status }}</span></td>
+      <td>
+        {% if record.expires_at %}{{ record.expires_at.strftime("%d %b %Y") }}
+        {% else %}Selamanya{% endif %}
+      </td>
+      <td style="text-align:right;white-space:nowrap">
+        {% if status in ("active", "expired") %}
+          <a class="btn small" href="/licenses/{{ record.id }}/download">Unduh .poslic</a>
+          <form method="post" action="/licenses/{{ record.id }}/deactivate" style="display:inline">
+            <button class="btn danger small" type="submit">Nonaktifkan</button>
+          </form>
+        {% else %}
+          <span class="muted" style="font-size:13px">Tunggu pembayaran</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">Belum ada lisensi. Unggah <code>.posreq</code> lalu pilih paket di bawah.</p>
+  {% endif %}
+
+  {% if devices %}
+  <h2 style="margin-top:22px">Pilih Paket &amp; Bayar</h2>
+  <form method="post" action="/checkout" class="stack" style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap">
+    <div style="flex:1;min-width:200px">
+      <label>Perangkat</label>
+      <select name="device_pk" required>
+        {% for device in devices %}
+        <option value="{{ device.id }}">{{ device.store_name }} — {{ device.installation_id[:8] }}…</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="flex:1;min-width:180px">
+      <label>Paket</label>
+      <select name="plan_code" required>
+        {% for plan in plans %}
+        <option value="{{ plan.code }}">{{ plan.name }} — Rp {{ "{:,}".format(plan.price_idr).replace(",", ".") }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <button class="btn" type="submit">Buat Tagihan</button>
+    </div>
+  </form>
+  {% endif %}
+</div>
+
+{% if orders %}
+<div class="card">
+  <h2>Riwayat Order</h2>
+  <table>
+    <tr><th>Kode</th><th>Paket</th><th>Nominal</th><th>Status</th><th>Tanggal</th></tr>
+    {% for order in orders %}
+    <tr>
+      <td><a href="/orders/{{ order.order_code }}"><code>{{ order.order_code }}</code></a></td>
+      <td>{{ order.plan_code }}</td>
+      <td>Rp {{ "{:,}".format(order.amount_idr).replace(",", ".") }}</td>
+      <td><span class="badge {{ order.status }}">{{ order.status }}</span></td>
+      <td>{{ order.created_at.strftime("%d %b %Y %H:%M") }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+{% endblock %}

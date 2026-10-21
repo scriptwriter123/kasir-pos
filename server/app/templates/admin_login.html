@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Masuk Admin — AnjayRetailSoft{% endblock %}
+{% block content %}
+<div class="card" style="max-width:440px;margin:40px auto">
+  <h1>Masuk Admin</h1>
+  <p class="muted" style="font-size:14px">Khusus administrator webserver.</p>
+  {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+  <form class="stack" method="post" action="/admin/login">
+    <label>Email admin</label>
+    <input type="email" name="email" required value="{{ email or '' }}">
+    <label>Password</label>
+    <input type="password" name="password" required>
+    <p style="margin-top:18px"><button class="btn" type="submit">Masuk</button></p>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Admin — AnjayRetailSoft{% endblock %}
+{% block content %}
+<h1>Dashboard Admin</h1>
+<p class="muted">Data customer dan status langganan.</p>
+
+{% if notice %}<div class="alert ok">{{ notice }}</div>{% endif %}
+{% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+
+<div class="grid" style="margin-bottom:20px">
+  <div class="card" style="margin:0">
+    <div class="muted" style="font-size:13px">Total Admin</div>
+    <div class="price">{{ total_admins }}</div>
+  </div>
+  <div class="card" style="margin:0">
+    <div class="muted" style="font-size:13px">Total Customer</div>
+    <div class="price">{{ total_customers }}</div>
+  </div>
+  <div class="card" style="margin:0">
+    <div class="muted" style="font-size:13px">Langganan Aktif</div>
+    <div class="price">{{ active_subs }}</div>
+  </div>
+  <div class="card" style="margin:0">
+    <div class="muted" style="font-size:13px">Menunggu Pembayaran</div>
+    <div class="price">{{ pending_subs }}</div>
+  </div>
+  <div class="card" style="margin:0">
+    <div class="muted" style="font-size:13px">Pendapatan (lunas)</div>
+    <div class="price">Rp {{ "{:,}".format(revenue_idr).replace(",", ".") }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+    <h2 style="margin:0">Admin</h2>
+    <span class="muted" style="font-size:13px">{{ total_admins }} akun</span>
+  </div>
+  <div style="overflow-x:auto">
+  <table>
+    <tr><th>Email</th><th>Dibuat</th><th>Status</th><th style="text-align:right">Aksi</th></tr>
+    {% for item in admins %}
+    <tr>
+      <td>{{ item.email }}{% if item.id == customer.id %} <span class="badge admin">Anda</span>{% endif %}</td>
+      <td>{{ item.created_at.strftime("%d %b %Y") }}</td>
+      <td>
+        {% if item.is_active %}<span class="badge active">aktif</span>
+        {% else %}<span class="badge revoked">nonaktif</span>{% endif %}
+      </td>
+      <td style="text-align:right;white-space:nowrap">
+        {% if item.id != customer.id %}
+        <form method="post" action="/admin/admins/{{ item.id }}/delete" style="display:inline"
+              onsubmit="return confirm('Hapus admin {{ item.email }}?')">
+          <button class="btn danger small" type="submit">Hapus</button>
+        </form>
+        {% else %}<span class="muted" style="font-size:13px">—</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  <details style="margin-top:14px">
+    <summary style="cursor:pointer;font-weight:600;font-size:14px">Tambah Admin</summary>
+    <form method="post" action="/admin/admins/create" class="stack"
+          style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-top:12px">
+      <div style="flex:1;min-width:200px">
+        <label>Email admin</label>
+        <input type="email" name="email" required placeholder="admin@contoh.com">
+      </div>
+      <div style="flex:1;min-width:220px">
+        <label>Password (min. 8 karakter)</label>
+        <div style="display:flex;gap:8px">
+          <input type="password" name="password" id="new-admin-pw" required minlength="8" style="flex:1">
+          <button class="btn secondary small" type="button" onclick="togglePw('new-admin-pw', this)">Lihat</button>
+        </div>
+      </div>
+      <div><button class="btn" type="submit">Tambah</button></div>
+    </form>
+  </details>
+</div>
+
+<div class="card">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+    <h2 style="margin:0">Customer</h2>
+    <span class="muted" style="font-size:13px">{{ total_customers }} akun</span>
+  </div>
+  {% if rows %}
+  <div style="overflow-x:auto">
+  <table>
+    <tr>
+      <th>Email</th><th>Toko</th><th>Status Langganan</th>
+      <th>Perangkat</th><th>Order</th><th>Total Bayar</th><th>Akun</th><th style="text-align:right">Aksi</th>
+    </tr>
+    {% for row in rows %}
+    <tr>
+      <td>{{ row.customer.email }}</td>
+      <td>{{ row.customer.store_name or "—" }}</td>
+      <td>
+        <span class="badge {{ row.sub_status }}">{{ row.sub_status }}</span>
+        <div class="muted" style="font-size:12px;margin-top:3px">{{ row.sub_detail }}</div>
+        {% if row.licenses|length > 1 %}
+        <div class="muted" style="font-size:12px">+{{ row.licenses|length - 1 }} lisensi lain</div>
+        {% endif %}
+      </td>
+      <td>{{ row.device_count }}</td>
+      <td>{{ row.order_count }}</td>
+      <td>Rp {{ "{:,}".format(row.paid_total).replace(",", ".") }}</td>
+      <td>
+        {% if row.customer.is_active %}<span class="badge active">aktif</span>
+        {% else %}<span class="badge revoked">nonaktif</span>{% endif %}
+      </td>
+      <td style="text-align:right;white-space:nowrap">
+        <form method="post" action="/admin/customers/{{ row.customer.id }}/toggle" style="display:inline">
+          <button class="btn secondary small" type="submit">
+            {{ "Nonaktifkan" if row.customer.is_active else "Aktifkan" }}
+          </button>
+        </form>
+        <form method="post" action="/admin/customers/{{ row.customer.id }}/delete" style="display:inline"
+              onsubmit="return confirm('Hapus customer {{ row.customer.email }} beserta perangkat, lisensi, dan ordernya?')">
+          <button class="btn danger small" type="submit">Hapus</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% else %}
+  <p class="muted">Belum ada customer terdaftar.</p>
+  {% endif %}
+  <details style="margin-top:14px">
+    <summary style="cursor:pointer;font-weight:600;font-size:14px">Tambah Customer</summary>
+    <form method="post" action="/admin/customers/create" class="stack"
+          style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-top:12px">
+      <div style="flex:1;min-width:200px">
+        <label>Email customer</label>
+        <input type="email" name="email" required placeholder="toko@contoh.com">
+      </div>
+      <div style="flex:1;min-width:200px">
+        <label>Nama toko</label>
+        <input type="text" name="store_name" placeholder="Nama toko">
+      </div>
+      <div style="flex:1;min-width:220px">
+        <label>Password (min. 8 karakter)</label>
+        <div style="display:flex;gap:8px">
+          <input type="password" name="password" id="new-cust-pw" required minlength="8" style="flex:1">
+          <button class="btn secondary small" type="button" onclick="togglePw('new-cust-pw', this)">Lihat</button>
+        </div>
+      </div>
+      <div><button class="btn" type="submit">Tambah</button></div>
+    </form>
+  </details>
+</div>
+
+<form action="/admin/logout" method="post" style="display:inline">
+  <button class="btn secondary small" type="submit">Keluar Admin</button>
+</form>
+
+<script>
+function togglePw(id, el) {
+  var input = document.getElementById(id);
+  if (input.type === "password") { input.type = "text"; el.textContent = "Sembunyi"; }
+  else { input.type = "password"; el.textContent = "Lihat"; }
+}
+</script>
+{% endblock %}

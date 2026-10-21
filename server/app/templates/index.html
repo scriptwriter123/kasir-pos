@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="homepage hero">
+  <div class="container">
+    <div class="hero-content">
+      <h1>AnjayRetailSoft — Aplikasi Kasir Modern untuk Toko Anda</h1>
+      <p class="lead">Transaksi cepat, laporan akurat, dan manajemen stok otomatis untuk toko kecil dan menengah.</p>
+      <div class="hero-badges">
+        <span class="badge">Terpercaya oleh 1000+ toko</span>
+        <span class="badge">Open Source</span>
+        <span class="badge">Gratis untuk mulai</span>
+      </div>
+      <div class="hero-actions">
+        <a class="btn" href="/download/installer">Download</a>
+        <a class="btn secondary" href="/register">Buat Akun</a>
+      </div>
+      <p class="hero-credit">This app created by Anjay Soft. Dev.</p>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="container">
+    <div class="section-head">
+      <p class="eyebrow">Fitur Unggulan</p>
+      <h2>Semua yang butuh untuk mengelola toko</h2>
+      <p class="section-copy">Dapatkan aplikasi kasir lengkap dengan fitur yang siap pakai untuk bisnis Anda.</p>
+    </div>
+    <div class="grid">
+      <article class="card feature-card">
+        <div class="feature-icon">1</div>
+        <h3>Transaksi Cepat</h3>
+        <p>Scan barcode, tambah item, dan proses pembayaran dalam hitungan detik.</p>
+      </article>
+      <article class="card feature-card">
+        <div class="feature-icon">2</div>
+        <h3>Stok Otomatis</h3>
+        <p>Stok terupdate otomatis setelah setiap transaksi terjadi.</p>
+      </article>
+      <article class="card feature-card">
+        <div class="feature-icon">3</div>
+        <h3>Laporan Real-time</h3>
+        <p>Lihat penjualan harian, bulanan, dan tahunan kapan saja.</p>
+      </article>
+      <article class="card feature-card">
+        <div class="feature-icon">4</div>
+        <h3>Multi-user</h3>
+        <p>Akses kasir dan admin dengan role yang berbeda.</p>
+      </article>
+      <article class="card feature-card">
+        <div class="feature-icon">5</div>
+        <h3>Offline Mode</h3>
+        <p>Transaksi tetap berjalan tanpa koneksi internet.</p>
+      </article>
+      <article class="card feature-card">
+        <div class="feature-icon">6</div>
+        <h3>Integrasi Printer</h3>
+        <p>Cetak struk langsung dari printer termal.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="pricing">
+  <div class="container">
+    <div class="section-head">
+      <p class="eyebrow">Paket Langganan</p>
+      <h2>Pilih paket yang sesuai dengan kebutuhan toko Anda</h2>
+      <p class="section-copy">Mulai gratis, tingkatkan saat bisnis Anda berkembang.</p>
+    </div>
+    <div class="grid">
+      <article class="card plan-card">
+        <strong>Gratis</strong>
+        <div class="price">Rp 0<span class="price-suffix"> / bln</span></div>
+        <ul class="plan-list">
+          <li>1 pengguna</li>
+          <li>Transaksi terbatas</li>
+          <li>Laporan dasar</li>
+        </ul>
+        <a class="btn" href="/download/installer">Mulai Gratis</a>
+      </article>
+      <article class="card plan-card featured">
+        <strong>Usaha Kecil</strong>
+        <div class="price">Rp 99.000<span class="price-suffix"> / bln</span></div>
+        <ul class="plan-list">
+          <li>Pengguna tak terbatas</li>
+          <li>Laporan lengkap</li>
+          <li>Support email</li>
+        </ul>
+        <a class="btn" href="/register">Upgrade Sekarang</a>
+      </article>
+      <article class="card plan-card">
+        <strong>Usaha Menengah</strong>
+        <div class="price">Rp 249.000<span class="price-suffix"> / bln</span></div>
+        <ul class="plan-list">
+          <li>Semua fitur</li>
+          <li>Multi-cabang</li>
+          <li>API integrasi</li>
+          <li>Support prioritas</li>
+        </ul>
+        <a class="btn" href="/register">Hubungi Sales</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="container">
+    <div class="cta-card">
+      <h2>Kelola Toko Anda dengan Lebih Baik Bersama AnjayRetailSoft</h2>
+      <p>Aplikasi kasir modern yang siap membantu pertumbuhan bisnis Anda.</p>
+      <a class="btn" href="/download/installer">Download</a>
+    </div>
+  </div>
+</section>
+
+<style>
+.container { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+.hero { padding: 56px 0 40px; text-align: center; }
+.hero h1 { font-size: 34px; line-height: 1.25; margin-bottom: 14px; font-weight: 700; }
+.hero .lead { font-size: 18px; color: var(--muted); margin-bottom: 24px; max-width: 640px; margin-left: auto; margin-right: auto; }
+.hero-badges { display: flex; gap: 10px; justify-content: center; margin-bottom: 22px; flex-wrap: wrap; }
+.hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.hero-actions .btn { font-size: 16px; padding: 14px 26px; }
+.hero-credit { margin-top: 18px; font-size: 13px; color: var(--muted); }
+
+.features { padding: 40px 0; }
+.section-head { text-align: center; margin-bottom: 32px; }
+.section-head .eyebrow { color: var(--accent); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.section-head h2 { font-size: 26px; margin-bottom: 10px; }
+.section-head .section-copy { color: var(--muted); font-size: 15px; max-width: 640px; margin: 0 auto; }
+
+.feature-card { text-align: center; padding: 24px; }
+.feature-icon { width: 40px; height: 40px; background: var(--accent-soft); color: var(--accent-strong); border-radius: 10px; font-size: 20px; font-weight: 700; line-height: 40px; margin: 0 auto 14px; display: inline-block; }
+.feature-card h3 { font-size: 17px; margin-bottom: 8px; }
+.feature-card p { font-size: 14px; color: var(--muted); margin: 0; }
+
+.pricing { padding: 40px 0; background: #f1f5f9; }
+.price { font-size: 30px; font-weight: 700; margin: 8px 0; }
+.price-suffix { font-size: 15px; color: var(--muted); font-weight: 500; }
+.plan-card { text-align: center; }
+.plan-card ul.plan-list { list-style: none; padding: 0; margin: 20px 0; color: var(--muted); font-size: 14px; }
+.plan-card ul.plan-list li { padding: 5px 0; border-bottom: 1px solid #e2e8f0; }
+.plan-card.featured { border-color: var(--accent); background: #fefce8; }
+.plan-card.featured .btn { background: var(--accent-strong); color: #040d10; }
+
+.cta { padding: 56px 0; text-align: center; }
+.cta-card { max-width: 640px; margin: 0 auto; padding: 36px 24px; background: var(--card); border: 1px solid #e2e8f0; border-radius: 12px; }
+.cta-card h2 { font-size: 24px; margin-bottom: 10px; }
+.cta-card p { color: var(--muted); margin-bottom: 22px; }
+.cta-card .btn { font-size: 16px; padding: 14px 26px; }
+</style>
+{% endblock %}
