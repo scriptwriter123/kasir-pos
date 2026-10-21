@@ -1,0 +1,8 @@
+# Jangan ikut ke image build
+.env
+.env.*
+data/
+__pycache__/
+*.pyc
+*.db
+opencode.json
