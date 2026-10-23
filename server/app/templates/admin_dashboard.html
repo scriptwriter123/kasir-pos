@@ -1,133 +1,367 @@
 {% extends "base.html" %}
-{% block title %}Admin — AnjayRetailSoft{% endblock %}
+{% block title %}Dashboard Admin & Realtime Server — AnjayRetailSoft{% endblock %}
 {% block content %}
-<h1>Dashboard Admin</h1>
-<p class="muted">Data customer dan status langganan.</p>
+
+<style>
+  .btn.whatsapp { background: #16a34a; color: #fff; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .btn.whatsapp:hover { background: #15803d; color: #fff; }
+  .server-bar {
+    background: #0f172a; color: #f8fafc; border-radius: 12px; padding: 16px 20px;
+    margin-bottom: 22px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;
+    font-size: 13px; border: 1px solid #1e293b;
+  }
+  .server-item-title { color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+  .server-item-val { font-weight: 600; color: #f1f5f9; display: flex; align-items: center; gap: 6px; word-break: break-all; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot.green { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+  .dot.yellow { background: #eab308; box-shadow: 0 0 6px #eab308; }
+  .dot.blue { background: #38bdf8; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .offline-banner {
+    background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 16px; margin-bottom: 20px;
+  }
+</style>
+
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px">
+  <div>
+    <h1 style="margin:0 0 4px">Dashboard Admin & Server Realtime</h1>
+    <p class="muted" style="margin:0">Monitoring pembayaran Midtrans, perangkat POS, dan layanan aktivasi offline.</p>
+  </div>
+  <div>
+    <form action="/admin/logout" method="post" style="display:inline">
+      <button class="btn secondary small" type="submit">Keluar Admin</button>
+    </form>
+  </div>
+</div>
 
 {% if notice %}<div class="alert ok">{{ notice }}</div>{% endif %}
 {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
 
-<div class="grid" style="margin-bottom:20px">
-  <div class="card" style="margin:0">
-    <div class="muted" style="font-size:13px">Total Admin</div>
-    <div class="price">{{ total_admins }}</div>
+<!-- BAR STATUS REALTIME SERVER & GATEWAY -->
+<div class="server-bar">
+  <div>
+    <div class="server-item-title">Webserver Billing</div>
+    <div class="server-item-val"><span class="dot green"></span> 127.0.0.1:8001 (Online)</div>
   </div>
-  <div class="card" style="margin:0">
-    <div class="muted" style="font-size:13px">Total Customer</div>
-    <div class="price">{{ total_customers }}</div>
+  <div>
+    <div class="server-item-title">Publik Ngrok / Base URL</div>
+    <div class="server-item-val"><span class="dot blue"></span> {{ server_info.base_url }}</div>
   </div>
-  <div class="card" style="margin:0">
-    <div class="muted" style="font-size:13px">Langganan Aktif</div>
-    <div class="price">{{ active_subs }}</div>
+  <div>
+    <div class="server-item-title">Webhook Midtrans</div>
+    <div class="server-item-val" title="{{ server_info.webhook_url }}"><span class="dot green"></span> /webhooks/payment/midtrans</div>
   </div>
-  <div class="card" style="margin:0">
-    <div class="muted" style="font-size:13px">Menunggu Pembayaran</div>
-    <div class="price">{{ pending_subs }}</div>
+  <div>
+    <div class="server-item-title">Midtrans Gateway</div>
+    <div class="server-item-val"><span class="dot yellow"></span> {{ server_info.midtrans_env|upper }} MODE</div>
   </div>
-  <div class="card" style="margin:0">
-    <div class="muted" style="font-size:13px">Pendapatan (lunas)</div>
-    <div class="price">Rp {{ "{:,}".format(revenue_idr).replace(",", ".") }}</div>
+  <div>
+    <div class="server-item-title">Hotline WA Admin (Offline)</div>
+    <div class="server-item-val"><span class="dot green"></span> +{{ server_info.admin_whatsapp }}</div>
   </div>
 </div>
 
-<div class="card">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-    <h2 style="margin:0">Admin</h2>
-    <span class="muted" style="font-size:13px">{{ total_admins }} akun</span>
+<!-- KARTU METRIK UTAMA -->
+<div class="grid" style="margin-bottom:20px">
+  <div class="card" style="margin:0">
+    <div class="muted" style="font-size:13px">Pendapatan (Lunas)</div>
+    <div class="price">Rp {{ "{:,}".format(revenue_idr).replace(",", ".") }}</div>
+    <div class="muted" style="font-size:12px">{{ paid_orders_count }} transaksi berhasil</div>
   </div>
+  <div class="card" style="margin:0">
+    <div class="muted" style="font-size:13px">Order Menunggu Bayar</div>
+    <div class="price" style="color:#d97706">{{ pending_subs }}</div>
+    <div class="muted" style="font-size:12px">Total order: {{ orders|length }}</div>
+  </div>
+  <div class="card" style="margin:0">
+    <div class="muted" style="font-size:13px">Lisensi Aktif</div>
+    <div class="price" style="color:#16a34a">{{ active_subs }}</div>
+    <div class="muted" style="font-size:12px">Dari {{ licenses|length }} lisensi</div>
+  </div>
+  <div class="card" style="margin:0">
+    <div class="muted" style="font-size:13px">Perangkat Kasir Terdaftar</div>
+    <div class="price">{{ total_devices_count }}</div>
+    <div class="muted" style="font-size:12px">{{ total_customers }} customer</div>
+  </div>
+</div>
+
+<!-- SECTION 1: DAFTAR TRANSAKSI & ORDER REALTIME -->
+<div class="card">
+  <div class="section-header">
+    <div>
+      <h2 style="margin:0">Transaksi &amp; Order Realtime</h2>
+      <span class="muted" style="font-size:13px">Status pembayaran otomatis via webhook Midtrans &amp; verifikasi manual.</span>
+    </div>
+    <span class="badge active">{{ paid_orders_count }} Lunas / {{ orders|length }} Total</span>
+  </div>
+
+  {% if orders %}
   <div style="overflow-x:auto">
   <table>
-    <tr><th>Email</th><th>Dibuat</th><th>Status</th><th style="text-align:right">Aksi</th></tr>
-    {% for item in admins %}
-    <tr>
-      <td>{{ item.email }}{% if item.id == customer.id %} <span class="badge admin">Anda</span>{% endif %}</td>
-      <td>{{ item.created_at.strftime("%d %b %Y") }}</td>
-      <td>
-        {% if item.is_active %}<span class="badge active">aktif</span>
-        {% else %}<span class="badge revoked">nonaktif</span>{% endif %}
-      </td>
-      <td style="text-align:right;white-space:nowrap">
-        {% if item.id != customer.id %}
-        <form method="post" action="/admin/admins/{{ item.id }}/delete" style="display:inline"
-              onsubmit="return confirm('Hapus admin {{ item.email }}?')">
-          <button class="btn danger small" type="submit">Hapus</button>
-        </form>
-        {% else %}<span class="muted" style="font-size:13px">—</span>{% endif %}
-      </td>
-    </tr>
-    {% endfor %}
+    <thead>
+      <tr>
+        <th>Waktu</th>
+        <th>Kode Order</th>
+        <th>Customer</th>
+        <th>Paket</th>
+        <th>Nominal</th>
+        <th>Status</th>
+        <th>Provider</th>
+        <th style="text-align:right">Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for order in orders %}
+      <tr>
+        <td style="white-space:nowrap;font-size:12px">
+          <div>{{ order.created_at.strftime("%d %b %Y %H:%M") }}</div>
+          {% if order.paid_at %}
+          <div style="color:#16a34a;font-weight:600">Lunas: {{ order.paid_at.strftime("%H:%M") }}</div>
+          {% endif %}
+        </td>
+        <td><code>{{ order.order_code }}</code></td>
+        <td>
+          <div style="font-weight:600">{{ order.customer.store_name or "Toko" }}</div>
+          <div class="muted" style="font-size:12px">{{ order.customer.email }}</div>
+        </td>
+        <td><span class="badge admin">{{ order.plan_code }}</span></td>
+        <td style="font-weight:600">Rp {{ "{:,}".format(order.amount_idr).replace(",", ".") }}</td>
+        <td>
+          <span class="badge {{ order.status }}">{{ order.status|upper }}</span>
+        </td>
+        <td style="font-size:12px">
+          {% if order.payment %}
+            <span class="badge active">{{ order.payment.provider }}</span>
+            <div class="muted" style="font-size:11px">{{ order.payment.status }}</div>
+          {% elif order.snap_token %}
+            <span class="muted">Midtrans Snap</span>
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </td>
+        <td style="text-align:right;white-space:nowrap">
+          {% if order.status == "pending" %}
+          <form method="post" action="/admin/orders/{{ order.order_code }}/mark-paid" style="display:inline"
+                onsubmit="return confirm('Tandai order {{ order.order_code }} sebagai Lunas dan aktifkan lisensi?')">
+            <button class="btn small" style="background:#16a34a" type="submit">Tandai Lunas</button>
+          </form>
+          {% elif order.status == "paid" %}
+            {% if order.license_id %}
+            <a class="btn secondary small" href="/admin/licenses/{{ order.license_id }}/download" title="Unduh file lisensi .poslic">Unduh .poslic</a>
+            <a class="btn whatsapp small" target="_blank"
+               href="https://wa.me/?text=Halo%20{{ order.customer.store_name|urlencode }},%20pembayaran%20lisensi%20POS%20Anda%20(Order:%20{{ order.order_code }})%20sudah%20KAMI%20TERIMA%20LUNAS.%20Lisensi%20sudah%20aktif.%20Bagi%20PC%20yang%20offline,%20silakan%20hubungi%20kami%20untuk%20file%20.poslic.%20Terima%20kasih!">
+              WA
+            </a>
+            {% else %}
+            <span class="muted" style="font-size:12px">Lunas</span>
+            {% endif %}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
   </table>
   </div>
-  <details style="margin-top:14px">
-    <summary style="cursor:pointer;font-weight:600;font-size:14px">Tambah Admin</summary>
-    <form method="post" action="/admin/admins/create" class="stack"
-          style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-top:12px">
-      <div style="flex:1;min-width:200px">
-        <label>Email admin</label>
-        <input type="email" name="email" required placeholder="admin@contoh.com">
-      </div>
-      <div style="flex:1;min-width:220px">
-        <label>Password (min. 8 karakter)</label>
-        <div style="display:flex;gap:8px">
-          <input type="password" name="password" id="new-admin-pw" required minlength="8" style="flex:1">
-          <button class="btn secondary small" type="button" onclick="togglePw('new-admin-pw', this)">Lihat</button>
+  {% else %}
+  <p class="muted">Belum ada transaksi pembayaran yang tercatat.</p>
+  {% endif %}
+</div>
+
+<!-- SECTION 2: PERANGKAT & LISENSI TERBIT -->
+<div class="card">
+  <div class="section-header">
+    <div>
+      <h2 style="margin:0">Perangkat Kasir &amp; Lisensi Terbit</h2>
+      <span class="muted" style="font-size:13px">Daftar instalasi PC kasir dan status lisensi digital Ed25519.</span>
+    </div>
+    <span class="badge active">{{ active_subs }} Aktif</span>
+  </div>
+
+  {% if devices %}
+  <div style="overflow-x:auto">
+  <table>
+    <thead>
+      <tr>
+        <th>Toko / Customer</th>
+        <th>Hardware ID (PC Kasir)</th>
+        <th>Lisensi ID</th>
+        <th>Paket</th>
+        <th>Status</th>
+        <th>Masa Berlaku</th>
+        <th style="text-align:right">Aksi Offline / WA</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for dev in devices %}
+      <tr>
+        <td>
+          <div style="font-weight:600">{{ dev.store_name }}</div>
+          <div class="muted" style="font-size:12px">{{ dev.customer.email }}</div>
+        </td>
+        <td style="font-size:12px">
+          <div>Instalasi: <code>{{ dev.installation_id[:13] }}…</code></div>
+          <div class="muted">Device ID: <code>{{ dev.device_id[:13] }}…</code></div>
+        </td>
+        <td>
+          {% if dev.license %}
+            <code>{{ dev.license.license_id[:16] }}…</code>
+          {% else %}
+            <span class="muted">Belum ada</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if dev.license %}
+            <span class="badge admin">{{ dev.license.plan_code }}</span>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if dev.license %}
+            <span class="badge {{ dev.license.status }}">{{ dev.license.status|upper }}</span>
+          {% else %}
+            <span class="badge none">TIDAK ADA</span>
+          {% endif %}
+        </td>
+        <td style="font-size:12px">
+          {% if dev.license and dev.license.expires_at %}
+            {{ dev.license.expires_at.strftime("%d %b %Y") }}
+          {% elif dev.license and dev.license.status == 'active' %}
+            <span style="color:#16a34a;font-weight:600">Selamanya</span>
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </td>
+        <td style="text-align:right;white-space:nowrap">
+          {% if dev.license and dev.license.status == 'active' %}
+          <a class="btn secondary small" href="/admin/licenses/{{ dev.license.id }}/download" title="Unduh file .poslic untuk PC kasir ini">Unduh .poslic</a>
+          <a class="btn whatsapp small" target="_blank"
+             href="https://wa.me/?text=Halo%20{{ dev.store_name|urlencode }},%20ini%20adalah%20file%20lisensi%20aktif%20untuk%20PC%20Kasir%20Anda.%20ID%20Lisensi:%20{{ dev.license.license_id }}.%20Silakan%20salin%20file%20.poslic%20ke%20flashdisk%20dan%20impor%20di%20menu%20Aktivasi%20Offline.">
+            Kirim WA
+          </a>
+          {% else %}
+          <span class="muted" style="font-size:12px">Menunggu Bayar</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="muted">Belum ada perangkat kasir yang terdaftar.</p>
+  {% endif %}
+</div>
+
+<!-- SECTION 3: PENANGANAN KHUSUS PC OFFLINE (TANPA INTERNET) -->
+<div class="card" style="border:1px solid #bfdbfe;background:#f8faff">
+  <div class="section-header">
+    <div>
+      <h2 style="margin:0;color:#1e40af">Penanganan Khusus PC User Luar Jaringan (Offline)</h2>
+      <span class="muted" style="font-size:13px">Solusi untuk kasir yang tidak memiliki koneksi internet: terbitkan lisensi langsung dari teks .posreq dan kirim via WhatsApp.</span>
+    </div>
+    <span class="badge admin">Offline Helper</span>
+  </div>
+
+  <div class="offline-banner">
+    <div style="font-weight:600;color:#1e3a8a;margin-bottom:6px">📌 Alur Kerja Aktivasi PC Kasir Tanpa Internet:</div>
+    <ol style="margin:0;padding-left:20px;font-size:13px;color:#1e293b;line-height:1.6">
+      <li>Di PC kasir yang tidak ada internet: User membuka aplikasi POS ➔ Tab <strong>Aktivasi Offline</strong> ➔ Klik <strong>"Simpan Permintaan (.posreq)"</strong>.</li>
+      <li>User mengirimkan file atau isi teks <code>.posreq</code> tersebut ke WhatsApp Admin.</li>
+      <li>Admin menempelkan isi <code>.posreq</code> pada formulir di bawah ini dan klik <strong>"Terbitkan Lisensi Offline"</strong>.</li>
+      <li>Server akan otomatis menandatangani lisensi digital Ed25519 dan mengunduh file <code>.poslic</code>.</li>
+      <li>Admin mengirimkan file <code>.poslic</code> tersebut balik ke WhatsApp User untuk diimpor ke aplikasi POS kasir!</li>
+    </ol>
+  </div>
+
+  <details>
+    <summary style="cursor:pointer;font-weight:600;font-size:14px;color:#1d4ed8">
+      ➕ Buka Formulir Penerbitan Lisensi Offline (.posreq ➔ .poslic)
+    </summary>
+    <form method="post" action="/admin/offline-license/issue" class="stack" style="margin-top:14px">
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px">
+          <label>Email Customer</label>
+          <input type="email" name="email" required placeholder="customer@toko.com">
+        </div>
+        <div style="flex:1;min-width:220px">
+          <label>Nama Toko</label>
+          <input type="text" name="store_name" placeholder="Contoh: Toko Berkah">
+        </div>
+        <div style="flex:1;min-width:180px">
+          <label>Pilihan Paket</label>
+          <select name="plan_code">
+            {% for p in plans %}
+            <option value="{{ p.code }}">{{ p.name }} (Rp {{ "{:,}".format(p.price_idr).replace(",", ".") }})</option>
+            {% endfor %}
+          </select>
         </div>
       </div>
-      <div><button class="btn" type="submit">Tambah</button></div>
+      <div>
+        <label>Isi Teks Permintaan Lisensi (.posreq)</label>
+        <textarea name="posreq" rows="4" required placeholder="Tempel teks JSON dari file .posreq di sini..."
+                  style="width:100%;font-family:monospace;font-size:12px;padding:10px;border:1px solid #cbd5e1;border-radius:8px"></textarea>
+      </div>
+      <div style="margin-top:14px">
+        <button class="btn" type="submit" style="background:#1d4ed8">Terbitkan &amp; Aktifkan Lisensi Offline</button>
+      </div>
     </form>
   </details>
 </div>
 
+<!-- SECTION 4: MANAJEMEN CUSTOMER -->
 <div class="card">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-    <h2 style="margin:0">Customer</h2>
-    <span class="muted" style="font-size:13px">{{ total_customers }} akun</span>
+  <div class="section-header">
+    <div>
+      <h2 style="margin:0">Daftar Customer</h2>
+      <span class="muted" style="font-size:13px">{{ total_customers }} akun customer terdaftar.</span>
+    </div>
   </div>
   {% if rows %}
   <div style="overflow-x:auto">
   <table>
-    <tr>
-      <th>Email</th><th>Toko</th><th>Status Langganan</th>
-      <th>Perangkat</th><th>Order</th><th>Total Bayar</th><th>Akun</th><th style="text-align:right">Aksi</th>
-    </tr>
-    {% for row in rows %}
-    <tr>
-      <td>{{ row.customer.email }}</td>
-      <td>{{ row.customer.store_name or "—" }}</td>
-      <td>
-        <span class="badge {{ row.sub_status }}">{{ row.sub_status }}</span>
-        <div class="muted" style="font-size:12px;margin-top:3px">{{ row.sub_detail }}</div>
-        {% if row.licenses|length > 1 %}
-        <div class="muted" style="font-size:12px">+{{ row.licenses|length - 1 }} lisensi lain</div>
-        {% endif %}
-      </td>
-      <td>{{ row.device_count }}</td>
-      <td>{{ row.order_count }}</td>
-      <td>Rp {{ "{:,}".format(row.paid_total).replace(",", ".") }}</td>
-      <td>
-        {% if row.customer.is_active %}<span class="badge active">aktif</span>
-        {% else %}<span class="badge revoked">nonaktif</span>{% endif %}
-      </td>
-      <td style="text-align:right;white-space:nowrap">
-        <form method="post" action="/admin/customers/{{ row.customer.id }}/toggle" style="display:inline">
-          <button class="btn secondary small" type="submit">
-            {{ "Nonaktifkan" if row.customer.is_active else "Aktifkan" }}
-          </button>
-        </form>
-        <form method="post" action="/admin/customers/{{ row.customer.id }}/delete" style="display:inline"
-              onsubmit="return confirm('Hapus customer {{ row.customer.email }} beserta perangkat, lisensi, dan ordernya?')">
-          <button class="btn danger small" type="submit">Hapus</button>
-        </form>
-      </td>
-    </tr>
-    {% endfor %}
+    <thead>
+      <tr>
+        <th>Email</th><th>Toko</th><th>Status Langganan</th>
+        <th>Perangkat</th><th>Order</th><th>Total Bayar</th><th>Akun</th><th style="text-align:right">Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td style="font-weight:600">{{ row.customer.email }}</td>
+        <td>{{ row.customer.store_name or "—" }}</td>
+        <td>
+          <span class="badge {{ row.sub_status }}">{{ row.sub_status }}</span>
+          <div class="muted" style="font-size:12px;margin-top:3px">{{ row.sub_detail }}</div>
+        </td>
+        <td>{{ row.device_count }}</td>
+        <td>{{ row.order_count }}</td>
+        <td style="font-weight:600">Rp {{ "{:,}".format(row.paid_total).replace(",", ".") }}</td>
+        <td>
+          {% if row.customer.is_active %}<span class="badge active">aktif</span>
+          {% else %}<span class="badge revoked">nonaktif</span>{% endif %}
+        </td>
+        <td style="text-align:right;white-space:nowrap">
+          <form method="post" action="/admin/customers/{{ row.customer.id }}/toggle" style="display:inline">
+            <button class="btn secondary small" type="submit">
+              {{ "Nonaktifkan" if row.customer.is_active else "Aktifkan" }}
+            </button>
+          </form>
+          <form method="post" action="/admin/customers/{{ row.customer.id }}/delete" style="display:inline"
+                onsubmit="return confirm('Hapus customer {{ row.customer.email }} beserta perangkat, lisensi, dan ordernya?')">
+            <button class="btn danger small" type="submit">Hapus</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
   </table>
   </div>
   {% else %}
   <p class="muted">Belum ada customer terdaftar.</p>
   {% endif %}
+
   <details style="margin-top:14px">
-    <summary style="cursor:pointer;font-weight:600;font-size:14px">Tambah Customer</summary>
+    <summary style="cursor:pointer;font-weight:600;font-size:14px">Tambah Customer Manual</summary>
     <form method="post" action="/admin/customers/create" class="stack"
           style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-top:12px">
       <div style="flex:1;min-width:200px">
@@ -145,14 +379,66 @@
           <button class="btn secondary small" type="button" onclick="togglePw('new-cust-pw', this)">Lihat</button>
         </div>
       </div>
-      <div><button class="btn" type="submit">Tambah</button></div>
+      <div><button class="btn" type="submit">Tambah Customer</button></div>
     </form>
   </details>
 </div>
 
-<form action="/admin/logout" method="post" style="display:inline">
-  <button class="btn secondary small" type="submit">Keluar Admin</button>
-</form>
+<!-- SECTION 5: MANAJEMEN ADMIN -->
+<div class="card">
+  <div class="section-header">
+    <div>
+      <h2 style="margin:0">Akun Administrator</h2>
+      <span class="muted" style="font-size:13px">{{ total_admins }} akun admin.</span>
+    </div>
+  </div>
+  <div style="overflow-x:auto">
+  <table>
+    <thead>
+      <tr><th>Email</th><th>Dibuat</th><th>Status</th><th style="text-align:right">Aksi</th></tr>
+    </thead>
+    <tbody>
+      {% for item in admins %}
+      <tr>
+        <td>{{ item.email }}{% if item.id == customer.id %} <span class="badge admin">Anda</span>{% endif %}</td>
+        <td>{{ item.created_at.strftime("%d %b %Y") }}</td>
+        <td>
+          {% if item.is_active %}<span class="badge active">aktif</span>
+          {% else %}<span class="badge revoked">nonaktif</span>{% endif %}
+        </td>
+        <td style="text-align:right;white-space:nowrap">
+          {% if item.id != customer.id %}
+          <form method="post" action="/admin/admins/{{ item.id }}/delete" style="display:inline"
+                onsubmit="return confirm('Hapus admin {{ item.email }}?')">
+            <button class="btn danger small" type="submit">Hapus</button>
+          </form>
+          {% else %}<span class="muted" style="font-size:13px">—</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+  <details style="margin-top:14px">
+    <summary style="cursor:pointer;font-weight:600;font-size:14px">Tambah Admin Baru</summary>
+    <form method="post" action="/admin/admins/create" class="stack"
+          style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-top:12px">
+      <div style="flex:1;min-width:200px">
+        <label>Email admin</label>
+        <input type="email" name="email" required placeholder="admin@contoh.com">
+      </div>
+      <div style="flex:1;min-width:220px">
+        <label>Password (min. 8 karakter)</label>
+        <div style="display:flex;gap:8px">
+          <input type="password" name="password" id="new-admin-pw" required minlength="8" style="flex:1">
+          <button class="btn secondary small" type="button" onclick="togglePw('new-admin-pw', this)">Lihat</button>
+        </div>
+      </div>
+      <div><button class="btn" type="submit">Tambah Admin</button></div>
+    </form>
+  </details>
+</div>
 
 <script>
 function togglePw(id, el) {
@@ -161,4 +447,5 @@ function togglePw(id, el) {
   else { input.type = "password"; el.textContent = "Lihat"; }
 }
 </script>
+
 {% endblock %}

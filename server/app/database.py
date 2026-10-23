@@ -62,6 +62,13 @@ def _run_light_migrations(session_factory: sessionmaker[Session]) -> None:
                         "is_admin BOOLEAN NOT NULL DEFAULT 0"
                     )
                 )
+            if "phone" not in columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE customers ADD COLUMN "
+                        "phone VARCHAR(30) DEFAULT ''"
+                    )
+                )
 
 
 def seed_admin(

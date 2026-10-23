@@ -22,6 +22,7 @@ def register_customer(
     email: str,
     password: str,
     store_name: str = "",
+    phone: str = "",
 ) -> Customer:
     normalized_email = email.strip().lower()
     if "@" not in normalized_email or normalized_email.startswith("@"):
@@ -37,6 +38,7 @@ def register_customer(
         email=normalized_email,
         password_hash=hash_password(password),
         store_name=store_name.strip()[:150],
+        phone=phone.strip()[:30],
     )
     session.add(customer)
     session.commit()

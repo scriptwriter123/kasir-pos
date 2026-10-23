@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Order {{ order.order_code }} — AnjayRetailSoft{% endblock %}
 {% block content %}
-<div class="card" style="max-width:620px;margin:30px auto">
+<div class="card" style="max-width:620px;margin:30px auto"
+     data-order-code="{{ order.order_code }}"
+     data-order-status="{{ order.status }}">
   <h1>Order <code>{{ order.order_code }}</code></h1>
   {% if flash_status %}
     <div class="alert {{ 'ok' if flash_status == 'paid' else 'error' }}" style="margin-top:16px">
@@ -28,7 +30,13 @@
     <div class="alert ok" style="margin-top:16px">
       Pembayaran diterima. Lisensi telah diterbitkan.
     </div>
-    <a class="btn" href="/dashboard">Kembali ke Dashboard &amp; Unduh Lisensi</a>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+      <a class="btn" href="/dashboard">Ke Dashboard &amp; Unduh Lisensi</a>
+      <a class="btn" style="background:#16a34a;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:6px" target="_blank"
+         href="https://wa.me/{{ admin_whatsapp }}?text=Halo%20Admin,%20saya%20sudah%20membayar%20order%20{{ order.order_code }}%20(Toko:%20{{ customer.store_name|urlencode }}).%20PC%20kasir%20saya%20tidak%20ada%20internet%20(offline).%20Mohon%20bantu%20kirimkan%20file%20aktivasi%20lisensi%20.poslic%20ke%20nomor%20WA%20ini.%20Terima%20kasih!">
+        Chat WhatsApp Admin (.poslic)
+      </a>
+    </div>
   {% elif order.status == "pending" %}
     {% if order.snap_token %}
       <p class="muted" style="margin-top:16px;font-size:14px">
@@ -77,6 +85,38 @@
         Pembayaran Midtrans terverifikasi otomatis; ATM simulasi pakai tombol di atas.
       </span>
     </form>
+
+    <div style="margin-top:20px;padding:14px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-weight:600;font-size:14px;color:#166534">PC Kasir Anda tidak ada internet (Offline)?</div>
+          <div style="font-size:13px;color:#15803d;margin-top:2px">
+            Admin kami dapat langsung mengirimkan file lisensi <code>.poslic</code> ke WhatsApp Anda.
+          </div>
+        </div>
+        <a class="btn" style="background:#16a34a;color:#fff;text-decoration:none;font-size:13px;padding:8px 14px"
+           target="_blank"
+           href="https://wa.me/{{ admin_whatsapp }}?text=Halo%20Admin,%20saya%20sudah%20order%20POS%20dengan%20Kode%20Order:%20{{ order.order_code }}%20(Toko:%20{{ customer.store_name|urlencode }}).%20PC%20kasir%20saya%20tidak%20memiliki%20koneksi%20internet.%20Mohon%20bantu%20kirimkan%20file%20aktivasi%20lisensi%20.poslic.%20Terima%20kasih!">
+          Chat WhatsApp Admin
+        </a>
+      </div>
+    </div>
+    {% if order.status == "pending" %}
+      <div id="poll-indicator" style="margin-top:16px;padding:10px 14px;
+           background:#1e2230;border:1px solid #3a3a52;border-radius:8px;
+           font-size:13px;color:#8888aa;display:flex;align-items:center;gap:10px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;
+               background:#6c63ff;animation:pulse 1.2s ease-in-out infinite;"></span>
+        Memantau pembayaran otomatis setiap 5 detik&hellip;
+        <span style="font-size:11px;opacity:.7">(halaman akan diperbarui saat lunas)</span>
+      </div>
+      <style>
+        @keyframes pulse {
+          0%,100% { opacity:1; transform:scale(1); }
+          50%      { opacity:.4; transform:scale(.75); }
+        }
+      </style>
+    {% endif %}
     <script src="/static/order.js"></script>
   {% else %}
     <p class="muted" style="margin-top:16px;font-size:14px">

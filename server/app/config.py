@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     app_name: str = "POS Billing"
     app_env: str = "development"
     database_url: str = f"sqlite:///{BASE_DIR / 'data' / 'billing.db'}"
-    base_url: str = "http://localhost:8001"
+    base_url: str = "http://localhost:80"
     session_cookie_name: str = "billing_session"
     session_ttl_days: int = 30
     license_private_key_path: Path | None = None
@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     midtrans_api_url: str = "https://api.sandbox.midtrans.com/v2"
     midtrans_snap_api_url: str = "https://api.sandbox.midtrans.com/snap/v1"
     midtrans_snap_client_key: str | None = None
+    # URL publik yang bisa dijangkau Midtrans untuk mengirim notifikasi.
+    # Di development, isi dengan URL ngrok, mis: https://xxxx.ngrok.io
+    # Di production, isi dengan BASE_URL server Anda.
+    # Bila kosong, Midtrans memakai URL yang dikonfigurasi di MAP dashboard.
+    midtrans_notification_url: str | None = None
     admin_api_key: str | None = None
     # Akun admin dashboard webserver. Dibuat otomatis saat startup
     # (lihat seed_admin) dan bisa dibuat manual via
@@ -29,6 +34,8 @@ class Settings(BaseSettings):
     admin_email: str = "admin@pos.local"
     admin_password: str = "admin12345"
     installer_path: Path = BASE_DIR.parent / "build" / "installer_v3" / "AnjayRetailSoft.exe"
+    # Nomor WhatsApp admin untuk bantuan / hotline aktivasi lisensi offline
+    admin_whatsapp: str = "6281234567890"
     # Nama bank yang ditampilkan pada panel ATM/transfer simulasi.
     simulated_va_bank: str = "BANK SIMULASI"
 

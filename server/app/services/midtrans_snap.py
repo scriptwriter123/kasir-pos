@@ -20,6 +20,7 @@ def create_snap_transaction(
     customer_name: str,
     customer_email: str,
     item_name: str,
+    notification_url: str | None = None,
 ) -> dict[str, Any]:
     """Buat transaksi Midtrans Snap, kembalikan token & redirect_url."""
     if not settings.midtrans_server_key:
@@ -44,6 +45,17 @@ def create_snap_transaction(
         ],
         "expiry": {"unit": "hours", "duration": 24},
     }
+
+    # Daftarkan URL notifikasi webhook agar Midtrans tahu ke mana
+    # mengirim HTTP POST saat pembayaran selesai.  Bila None, Midtrans
+    # memakai URL yang terdaftar di MAP dashboard.
+    effective_notification_url = notification_url or settings.midtrans_notification_url
+    if effective_notification_url:
+        # Snap menggunakan field "callbacks" untuk notification_url,
+        # sedangkan Core API memakai header X-Override-Notification.
+        payload["callbacks"] = {
+            "notification": effective_notification_url
+        }
 
     url = f"{settings.midtrans_snap_api_url}/transactions"
     auth = (settings.midtrans_server_key, "")

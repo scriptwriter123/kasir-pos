@@ -14,7 +14,7 @@ from server.app import roadmap as roadmap_content
 from server.app.config import Settings, settings as default_settings
 from server.app.database import init_db, make_session_factory, seed_admin, seed_plans
 from server.app.licensing import SigningError
-from server.app.models import Customer, Plan
+from server.app.models import Customer, Device, License, Order, Payment, Plan
 from server.app.security import hash_password
 from server.app.services import auth_service, license_service, payment_service
 from server.app.services.auth_service import AuthError
@@ -309,8 +309,30 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "va_number": va_number,
                 "va_number_display": format_va_display(va_number),
                 "simulated_va_bank": app_settings.simulated_va_bank,
+                "admin_whatsapp": app_settings.admin_whatsapp,
             },
         )
+
+    @app.get("/api/orders/{order_code}/status")
+    def api_order_status(
+        order_code: str,
+        session: Session = Depends(get_session),
+        customer: Customer = Depends(get_customer),
+    ):
+        """Status cepat untuk polling JS di halaman order.
+
+        Hanya membaca database (tanpa memanggil Midtrans API) sehingga
+        aman dipanggil setiap beberapa detik.  Webhook Midtrans yang
+        memperbarui status; endpoint /check yang memvalidasi secara aktif.
+        """
+        order = license_service.get_order(session, customer, order_code)
+        if order is None:
+            raise HTTPException(status_code=404, detail="Order tidak ditemukan.")
+        return {
+            "order_code": order.order_code,
+            "status": order.status,
+            "paid_at": order.paid_at.isoformat() if order.paid_at else None,
+        }
 
     @app.post("/orders/{order_code}/check")
     def order_check(
@@ -472,10 +494,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             session.query(Customer).order_by(Customer.created_at.desc()).all()
         )
         admins = [c for c in customers if c.is_admin]
-        rows = []
-        active_subs = 0
-        pending_subs = 0
-        revenue_idr = 0
+        customer_rows = []
         for item in customers:
             if item.is_admin:
                 continue
@@ -483,7 +502,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             devices = license_service.list_devices(session, item)
             orders = license_service.list_orders(session, item)
             paid_total = sum(o.amount_idr for o in orders if o.status == "paid")
-            revenue_idr += paid_total
             statuses = {
                 license_service.license_effective_status(r) for r in licenses
             }
@@ -508,12 +526,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     else "Selamanya"
                 )
                 sub_detail = f"{best.plan_code} · s/d {expiry}"
-            if item.is_active:
-                if "active" in statuses:
-                    active_subs += 1
-                elif "pending" in statuses:
-                    pending_subs += 1
-            rows.append(
+            customer_rows.append(
                 {
                     "customer": item,
                     "licenses": licenses,
@@ -524,18 +537,45 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "sub_detail": sub_detail,
                 }
             )
+
+        # Ambil data realtime semua dimensi server
+        all_orders = session.query(Order).order_by(Order.created_at.desc()).all()
+        all_devices = session.query(Device).order_by(Device.created_at.desc()).all()
+        all_licenses = session.query(License).order_by(License.created_at.desc()).all()
+        plans = session.query(Plan).order_by(Plan.price_idr.asc()).all()
+
+        paid_orders = [o for o in all_orders if o.status == "paid"]
+        pending_orders = [o for o in all_orders if o.status == "pending"]
+        revenue_idr = sum(o.amount_idr for o in paid_orders)
+        active_licenses = [lic for lic in all_licenses if lic.status == "active"]
+
+        server_info = {
+            "base_url": app_settings.base_url,
+            "webhook_url": app_settings.midtrans_notification_url or (app_settings.base_url.rstrip("/") + "/webhooks/payment/midtrans"),
+            "midtrans_env": app_settings.midtrans_environment,
+            "admin_whatsapp": getattr(app_settings, "admin_whatsapp", "6281234567890"),
+            "key_configured": bool(app_settings.license_private_key_path and app_settings.license_private_key_path.is_file()),
+        }
+
         return templates.TemplateResponse(
             request,
             "admin_dashboard.html",
             {
                 "customer": admin,
                 "admins": admins,
-                "rows": rows,
+                "rows": customer_rows,
+                "orders": all_orders,
+                "devices": all_devices,
+                "licenses": all_licenses,
+                "plans": plans,
                 "total_admins": len(admins),
-                "total_customers": len(rows),
-                "active_subs": active_subs,
-                "pending_subs": pending_subs,
+                "total_customers": len(customer_rows),
+                "active_subs": len(active_licenses),
+                "pending_subs": len(pending_orders),
+                "paid_orders_count": len(paid_orders),
+                "total_devices_count": len(all_devices),
                 "revenue_idr": revenue_idr,
+                "server_info": server_info,
                 "notice": request.query_params.get("notice"),
                 "error": request.query_params.get("error"),
             },
@@ -658,6 +698,101 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             f"/admin?notice=Customer {email} beserta datanya dihapus.",
             status_code=303,
         )
+
+    @app.post("/admin/orders/{order_code}/mark-paid")
+    def admin_mark_order_paid(
+        order_code: str,
+        session: Session = Depends(get_session),
+        admin: Customer = Depends(get_admin),
+    ):
+        order = session.query(Order).filter(Order.order_code == order_code).first()
+        if order is None:
+            return RedirectResponse("/admin?error=Order tidak ditemukan.", status_code=303)
+        order.status = "paid"
+        order.paid_at = datetime.now(timezone.utc)
+        activated_msg = ""
+        if order.license_id is not None:
+            lic = session.get(License, order.license_id)
+            if lic is not None:
+                try:
+                    license_service.activate_license(session, lic, app_settings)
+                    activated_msg = " dan lisensi berhasil diaktifkan"
+                except Exception as exc:
+                    activated_msg = f" (tetapi aktivasi lisensi ditunda: {exc})"
+        session.commit()
+        return RedirectResponse(
+            f"/admin?notice=Order {order_code} berhasil ditandai LUNAS{activated_msg}.",
+            status_code=303,
+        )
+
+    @app.get("/admin/licenses/{license_pk}/download")
+    def admin_download_license(
+        license_pk: int,
+        session: Session = Depends(get_session),
+        admin: Customer = Depends(get_admin),
+    ):
+        license_record = session.get(License, license_pk)
+        if license_record is None or not license_record.payload_json or not license_record.signature:
+            raise HTTPException(status_code=404, detail="Lisensi belum aktif atau dokumen belum terbit.")
+        import json as _json
+        doc = license_service.license_document(license_record)
+        content = _json.dumps(doc, ensure_ascii=False, indent=2) + "\n"
+        return Response(
+            content=content,
+            media_type="application/json",
+            headers={
+                "Content-Disposition": f'attachment; filename="{license_record.license_id}.poslic"'
+            },
+        )
+
+    @app.post("/admin/offline-license/issue")
+    def admin_issue_offline_license(
+        email: str = Form(...),
+        store_name: str = Form(""),
+        plan_code: str = Form("monthly"),
+        posreq: str = Form(...),
+        session: Session = Depends(get_session),
+        admin: Customer = Depends(get_admin),
+    ):
+        normalized = email.strip().lower()
+        if "@" not in normalized:
+            return RedirectResponse("/admin?error=Email tidak valid.", status_code=303)
+        customer = session.query(Customer).filter(Customer.email == normalized).first()
+        if customer is None:
+            import secrets
+            customer = Customer(
+                email=normalized,
+                password_hash=hash_password(secrets.token_hex(8)),
+                store_name=store_name.strip() or "Toko Offline",
+                is_active=True,
+            )
+            session.add(customer)
+            session.flush()
+
+        try:
+            device = license_service.register_device(
+                session, customer, posreq.strip()
+            )
+            order, license_rec = license_service.create_checkout(
+                session, customer, device_pk=device.id, plan_code=plan_code
+            )
+            order.status = "paid"
+            order.paid_at = datetime.now(timezone.utc)
+            try:
+                license_service.activate_license(session, license_rec, app_settings)
+            except Exception as lic_err:
+                session.commit()
+                return RedirectResponse(
+                    f"/admin?notice=Order & Device terdaftar, tetapi aktivasi ditunda: {lic_err}",
+                    status_code=303,
+                )
+            session.commit()
+            return RedirectResponse(
+                f"/admin?notice=Lisensi offline untuk {customer.email} ({license_rec.license_id}) berhasil diterbitkan!",
+                status_code=303,
+            )
+        except Exception as exc:
+            return RedirectResponse(f"/admin?error=Gagal menerbitkan lisensi offline: {exc}", status_code=303)
 
     # -------------------------------------------------------------------- api
 

@@ -1,0 +1,14 @@
+# Cloudflare Tunnel Configuration for POS Application
+# Generated for: anjaysoftware.duckdns.org
+# Local server: http://127.0.0.1:8001
+
+tunnel: YOUR_TUNNEL_UUID_HERE
+credentials-file: /root/.cloudflared/YOUR_TUNNEL_UUID_HERE.json
+
+ingress:
+  # Point anjaysoftware.duckdns.org to your local server
+  - hostname: anjaysoftware.duckdns.org
+    service: http://localhost:8001
+
+  # Optional: fallback route (404 jika tidak cocok)
+  - service: http_status:404

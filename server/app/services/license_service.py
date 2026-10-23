@@ -255,6 +255,14 @@ def _attach_snap_token(
 ) -> None:
     """Panggil Midtrans Snap & simpan token. Gagal → biarkan (order tetap ada)."""
     try:
+        # Bangun notification URL dari settings jika tersedia.
+        # Format: <base_url>/webhooks/payment/midtrans
+        notification_url: str | None = None
+        if settings.midtrans_notification_url:
+            notification_url = settings.midtrans_notification_url.rstrip("/")
+        elif settings.base_url:
+            notification_url = settings.base_url.rstrip("/") + "/webhooks/payment/midtrans"
+
         result = create_snap_transaction(
             settings,
             order_code=order.order_code,
@@ -262,6 +270,7 @@ def _attach_snap_token(
             customer_name=customer.store_name or customer.email.split("@")[0],
             customer_email=customer.email,
             item_name=f"Lisensi {plan.name}",
+            notification_url=notification_url,
         )
         order.snap_token = result["token"]
         session.commit()
