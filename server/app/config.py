@@ -38,6 +38,80 @@ class Settings(BaseSettings):
     admin_whatsapp: str = "6281234567890"
     # Nama bank yang ditampilkan pada panel ATM/transfer simulasi.
     simulated_va_bank: str = "BANK SIMULASI"
+    telegram_bot_token: str | None = None
+    telegram_chat_id: str | None = None
+
+    @property
+    def telegram_enabled(self) -> bool:
+        return bool(self.telegram_bot_token and self.telegram_chat_id)
+
+    @property
+    def telegram_webhook_url(self) -> str | None:
+        if not self.telegram_enabled:
+            return None
+        base_url = self.base_url.rstrip("/")
+        return f"{base_url}/webhooks/telegram"
+
+    @property
+    def telegram_api_base(self) -> str:
+        if not self.telegram_bot_token:
+            return ""
+        return f"https://api.telegram.org/bot{self.telegram_bot_token}"
+
+    @property
+    def telegram_send_message_url(self) -> str:
+        if not self.telegram_bot_token or not self.telegram_chat_id:
+            return ""
+        return f"{self.telegram_api_base}/sendMessage"
+
+    @property
+    def telegram_get_updates_url(self) -> str:
+        if not self.telegram_bot_token:
+            return ""
+        return f"{self.telegram_api_base}/getUpdates"
+
+    @property
+    def telegram_set_webhook_url(self) -> str:
+        if not self.telegram_bot_token:
+            return ""
+        return f"{self.telegram_api_base}/setWebhook?url="
+
+    @property
+    def telegram_delete_webhook_url(self) -> str:
+        if not self.telegram_bot_token:
+            return ""
+        return f"{self.telegram_api_base}/deleteWebhook"
+
+    @property
+    def telegram_get_me_url(self) -> str:
+        if not self.telegram_bot_token:
+            return ""
+        return f"{self.telegram_api_base}/getMe"
+
+    @property
+    def telegram_set_my_commands_url(self) -> str:
+        if not self.telegram_bot_token:
+            return ""
+        return f"{self.telegram_api_base}/setMyCommands"
+
+    @property
+    def telegram_commands(self) -> list[dict]:
+        if not self.telegram_bot_token:
+            return []
+        return [
+            {"command": "start", "description": "Mulai bot & lihat bantuan"},
+            {"command": "status", "description": "Cek status langganan Anda"},
+        ]
+
+    @property
+    def telegram_help_text(self) -> str:
+        if not self.telegram_bot_token:
+            return ""
+        return (
+            "Bot Telegram Aktif. Perintah tersedia:\n"
+            "/start - Memulai bot\n"
+            "/status - Cek status langganan dan hari expires\n"
+        )
 
     @property
     def midtrans_environment(self) -> str:

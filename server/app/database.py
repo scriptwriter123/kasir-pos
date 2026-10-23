@@ -69,6 +69,13 @@ def _run_light_migrations(session_factory: sessionmaker[Session]) -> None:
                         "phone VARCHAR(30) DEFAULT ''"
                     )
                 )
+            if "telegram_chat_id" not in columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE customers ADD COLUMN "
+                        "telegram_chat_id VARCHAR(50)"
+                    )
+                )
 
 
 def seed_admin(

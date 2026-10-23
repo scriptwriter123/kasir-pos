@@ -40,6 +40,7 @@ class Customer(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     store_name: Mapped[str] = mapped_column(String(150), default="")
     phone: Mapped[str] = mapped_column(String(30), default="")
+    telegram_chat_id: Mapped[str | None] = mapped_column(String(50), default=None, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

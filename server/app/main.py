@@ -141,7 +141,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return templates.TemplateResponse(
             request,
             "index.html",
-            {"plans": plans, "customer": customer},
+            {"plans": plans, "customer": customer, "admin_whatsapp": app_settings.admin_whatsapp},
         )
 
     @app.get("/register", response_class=HTMLResponse)
@@ -1091,6 +1091,203 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 store_name=str(payload.get("store_name", "")),
             )
         return customer
+
+    # --------------------------------------------------------- telegram webhook
+    from server.app.services.telegram_service import TelegramService as _TelegramService
+
+    async def _send_telegram(message: str, chat_id: str | None = None) -> dict:
+        tg = _TelegramService()
+        if not tg.is_enabled():
+            return {"ok": False, "error": "Telegram not configured"}
+        return await tg.send_notification(message, chat_id=chat_id)
+
+    @app.post("/webhooks/telegram")
+    async def telegram_webhook(
+        request: Request,
+        session: Session = Depends(get_session),
+    ):
+        """Receive Telegram updates via webhook. No auth needed - verified by URL secret."""
+        try:
+            body = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON")
+
+        tg = _TelegramService()
+        if not tg.is_enabled():
+            raise HTTPException(status_code=503, detail="Telegram not configured")
+
+        message = body.get("message", {})
+        chat = message.get("chat", {})
+        text = message.get("text", "")
+        chat_id = str(chat.get("id", ""))
+        from_name = message.get("from", {}).get("first_name", "Pengguna")
+
+        if text.startswith("/start"):
+            welcome = (
+                f"Selamat datang di <b>Anjay Software POS</b>, {from_name}! 👋\n\n"
+                "Anda terhubung dengan sistem notifikasi resmi AnjaySoft Development.\n\n"
+                "Perintah tersedia:\n"
+                "/status - Cek status langganan POS Anda"
+            )
+            await tg.send_message(chat_id=chat_id, text=welcome, parse_mode="HTML")
+            session.query(Customer).filter(Customer.telegram_chat_id == chat_id).update(
+                {Customer.telegram_chat_id: chat_id}
+            ) if False else None
+            session.commit()
+            return {"ok": True, "message": "Welcome sent"}
+
+        elif text.startswith("/status"):
+            customer = (
+                session.query(Customer)
+                .filter(Customer.telegram_chat_id == chat_id)
+                .first()
+            )
+            if not customer:
+                await tg.send_message(
+                    chat_id=chat_id,
+                    text=(
+                        f"Halo {from_name}! Akun POS Anda belum terhubung.\n"
+                        "Hubungi admin untuk mendaftarkan nomor Telegram ini ke akun Anda."
+                    ),
+                )
+                return {"ok": True, "message": "No linked account"}
+
+            licenses = license_service.list_licenses(session, customer)
+            if not licenses:
+                await tg.send_message(
+                    chat_id=chat_id,
+                    text="Anda belum memiliki lisensi POS. Silakan daftar via dashboard.",
+                )
+                return {"ok": True, "message": "No license"}
+
+            best = next(
+                (r for r in licenses if license_service.license_effective_status(r) == "active"),
+                next(iter(licenses), None),
+            )
+            status = license_service.license_effective_status(best)
+            detail = ""
+            if best.expires_at:
+                detail = f" expires {best.expires_at.strftime('%d %b %Y')}"
+            elif status == "active":
+                detail = " (lifetime)"
+
+            await tg.send_message(
+                chat_id=chat_id,
+                text=f"Status Langganan POS Anda: <b>{status}</b>{detail}\nPlan: {best.plan_code}",
+                parse_mode="HTML",
+            )
+            return {"ok": True, "message": "Status sent"}
+
+        await tg.send_message(
+            chat_id=chat_id,
+            text="Perintah tidak dikenal. Ketik /start atau /status.",
+        )
+        return {"ok": True, "message": "Unknown command echoed"}
+
+    @app.post("/admin/telegram/setup-webhook")
+    def admin_setup_telegram_webhook(
+        payload: dict,
+        session: Session = Depends(get_session),
+    ):
+        """Set webhook URL to server's public URL + /webhooks/telegram."""
+        key = payload.get("admin_key")
+        if not app_settings.admin_api_key or key != app_settings.admin_api_key:
+            raise HTTPException(status_code=403, detail="Admin key tidak valid.")
+
+        import asyncio as _asyncio
+        import server.app.services.telegram_service as _tg_mod
+
+        tg = _tg_mod.TelegramService()
+        if not tg.is_enabled():
+            raise HTTPException(status_code=540, detail="Telegram bot token belum di-set di .env")
+
+        webhook_url = app_settings.telegram_webhook_url
+        if not webhook_url:
+            raise HTTPException(status_code=540, detail="Base URL belum benar untuk webhook URL")
+
+        try:
+            loop = _asyncio.new_event_loop()
+            result = loop.run_until_complete(tg.set_webhook(webhook_url))
+            commands = loop.run_until_complete(tg.set_my_commands())
+        finally:
+            loop.close()
+
+        return {
+            "webhook_url": webhook_url,
+            "set_webhook": result,
+            "set_commands": commands,
+            "me": _asyncio.get_event_loop().run_until_complete(tg.get_me()) if False else None,
+        }
+
+    @app.post("/admin/telegram/send")
+    def admin_send_telegram(
+        payload: dict,
+        session: Session = Depends(get_session),
+    ):
+        """Kirim pesan Telegram ke chat_id tertentu atau ke default admin chat."""
+        key = payload.get("admin_key")
+        if not app_settings.admin_api_key or key != app_settings.admin_api_key:
+            raise HTTPException(status_code=403, detail="Admin key tidak valid.")
+
+        chat_id = str(payload.get("chat_id") or app_settings.telegram_chat_id)
+        if not chat_id:
+            raise HTTPException(status_code=400, detail="chat_id wajib diisi")
+
+        import asyncio as _asyncio
+        import server.app.services.telegram_service as _tg_mod
+
+        async def _main():
+            tg = _tg_mod.TelegramService()
+            return await tg.send_notification(str(payload.get("message", "")), chat_id=chat_id)
+
+        result = _asyncio.get_event_loop().run_until_complete(_main())
+        return result
+
+    @app.post("/admin/telegram/auto-activate")
+    def admin_telegram_auto_activate(
+        payload: dict,
+        session: Session = Depends(get_session),
+    ):
+        """Auto-activate user jika belum pernah checkout (trial-to-active).
+        Dipanggil dari webhook /start bila akun belum memiliki lisensi aktif."""
+        key = payload.get("admin_key")
+        if not app_settings.admin_api_key or key != app_settings.admin_api_key:
+            raise HTTPException(status_code=403, detail="Admin key tidak valid.")
+
+        from datetime import timedelta as _td
+        from datetime import datetime as _dt
+
+        email = payload.get("email", "").strip().lower()
+        if not email:
+            raise HTTPException(status_code=400, detail="email wajib diisi")
+
+        customer = session.query(Customer).filter(Customer.email == email).first()
+        if not customer:
+            raise HTTPException(status_code=404, detail="Customer tidak ditemukan")
+
+        licenses = license_service.list_licenses(session, customer)
+        has_active = any(
+            license_service.license_effective_status(r) == "active" for r in licenses
+        )
+        if has_active:
+            return {"message": "Sudah ada license active", "status": "already_active"}
+
+        devices = license_service.list_devices(session, customer)
+        if not devices:
+            return {"message": "Belum punya device terdaftar", "status": "no_device"}
+
+        device = devices[0]
+        order, _ = license_service.create_checkout(
+            session, customer, device_pk=device.id, plan_code="monthly"
+        )
+        license_record = license_service.force_pay(session, app_settings, order)
+
+        return {
+            "message": "License di-activate otomatis",
+            "license_id": license_record.license_id,
+            "status": license_record.status,
+            "expires_at": license_record.expires_at.isoformat() if license_record.expires_at else None,
+        }
 
     return app
 

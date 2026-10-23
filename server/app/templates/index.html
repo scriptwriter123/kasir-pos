@@ -13,6 +13,10 @@
       <div class="hero-actions">
         <a class="btn" href="/download/installer">Download</a>
         <a class="btn secondary" href="/register">Buat Akun</a>
+        <a class="btn" href="https://wa.me/{{ admin_whatsapp }}" target="_blank" style="background:#25d366;color:#fff;padding:14px 26px;font-size:16px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:8px;"><path fill="#fff" d="M18.417 6.393c.605-.314.818-.785.818-1.306 0-.52-.213-.93-.578-1.233l-5.16 2.057c-.295.118-.496.208-.67.25l-4.737-1.895c-.184-.073-.39-.013-.52.093-.13.082-.217.14-.263.143-.028.003-.056.005-.084.005-.184 0-.353-.05-.501-.14l-4.368 1.747c-.379.152-.578.399-.59.697-.01.297.117.528.33.603l3.178 5.066.628 1.884c.066.198.193.365.358.483.371.248.661.373.895.373s.524-.125.895-.373.391-.285.358-.483l.63-1.884 3.178-5.066c.213-.075.32-.302.33-.603-.012-.298-.211-.545-.59-.697l-4.368-1.747c-.151-.093-.317-.043-.501.093l-4.737 1.895c-.174.043-.375.133-.57.25l-5.16-2.057c-.365-.103-.578-.313-.578-1.066 0-.781.728-1.273 1.843-1.273s1.843.492 1.843 1.273c0 .753-.213 1.163-.578 1.418l5.16 2.057c.195.078.396.16.57.25l4.737 1.895c.184.073.369.15.53.193.162.043.314.03.483-.03.169-.032.316-.123.433-.123.117 0 .228.007.338.01l4.368-1.747c.379-.15.578-.397.59-.697.011-.298-.117-.545-.33-.603l-3.178-5.066-.628-1.884c-.066-.198-.193-.365-.358-.483-.371-.248-.661-.373-.895-.373s-.524.125-.895.373l-.63 1.884-3.178 5.066c-.213.075-.32.302-.33.603.012.298.211.545.59.697l4.368 1.747c.151.093.317.043.501-.093l4.737-1.895c.174-.043.375-.133.57-.25l5.16 2.057c.365.103.578.313.578 1.066 0 .781-.728 1.273-1.843 1.273s-1.843-.492-1.843-1.273z"/></svg>
+          Chat Admin
+        </a>
       </div>
       <p class="hero-credit">This app created by Anjay Soft. Dev.</p>
     </div>
@@ -149,5 +153,201 @@
 .cta-card h2 { font-size: 24px; margin-bottom: 10px; }
 .cta-card p { color: var(--muted); margin-bottom: 22px; }
 .cta-card .btn { font-size: 16px; padding: 14px 26px; }
-</style>
+
+/* Chatbot widget */
+.chatbot-toggle {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+}
+
+.chatbot-btn {
+  width: 60px;
+  height: 60px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.chatbot-btn:hover {
+  transform: scale(1.1);
+}
+
+.chatbot-window {
+  position: fixed;
+  bottom: 96px;
+  right: 24px;
+  width: 320px;
+  max-height: 480px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  overflow: hidden;
+  display: none;
+  flex-direction: column;
+  z-index: 1000;
+}
+
+.chatbot-window.open {
+  display: flex;
+}
+
+.chatbot-header {
+  background: var(--accent);
+  color: #fff;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.chatbot-header span {
+  color: rgba(255,255,255,0.8);
+}
+
+.chatbot-close {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.8);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.chatbot-messages {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.chatbot-messages p {
+  margin: 8px 0;
+  max-width: 80%;
+}
+
+.chatbot-messages .user {
+  text-align: right;
+  margin-left: auto;
+}
+
+.chatbot-messages .admin {
+  margin-right: auto;
+}
+
+.chatbot-input {
+  padding: 12px 20px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  gap: 8px;
+}
+
+.chatbot-input input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.chatbot-input button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 0 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.chatbot-input input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+@media (max-width: 480px) {
+  .chatbot-window {
+    width: 100%;
+    max-height: 70vh;
+    bottom: 0;
+    right: 0;
+    border-radius: 0 0 0 16px;
+  }
+}
+
+<div class="chatbot-toggle">
+  <button class="chatbot-btn" onclick="toggleChatbot()" aria-label="Buka chat admin">💬</button>
+</div>
+
+<div class="chatbot-window" id="chatbotWindow">
+  <div class="chatbot-header">
+    <span>Chat dengan Admin</span>
+    <button class="chatbot-close" onclick="toggleChatbot()">&times;</button>
+  </div>
+  <div class="chatbot-messages" id="chatbotMessages">
+    <p class="admin">Halo! Saya AI dari AnjayRetailSoft. Ada yang bisa saya bantu? 😄</p>
+  </div>
+  <div class="chatbot-input">
+    <input type="text" id="chatbotInput" placeholder="Ketik pesan..." onkeydown="handleChatbotKey(event)" />
+    <button onclick="sendChatbotMessage()">Kirim</button>
+  </div>
+</div>
+
+<script>
+  const chatbotMessages = document.getElementById('chatbotMessages');
+  const chatbotInput = document.getElementById('chatbotInput');
+  let chatbotOpen = false;
+
+  function toggleChatbot() {
+    const windowEl = document.getElementById('chatbotWindow');
+    chatbotOpen = !chatbotOpen;
+    windowEl.classList.toggle('open', chatbotOpen);
+    if (chatbotOpen && chatbotMessages.children.length <= 1) {
+      chatbotMessages.innerHTML = '<p class="admin">Halo! Saya AI dari AnjayRetailSoft. Ada yang bisa saya bantu? 😄</p>';
+    }
+  }
+
+  function addChatbotMessage(text, sender) {
+    const p = document.createElement('p');
+    p.className = sender;
+    p.textContent = text;
+    chatbotMessages.appendChild(p);
+    chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+  }
+
+  function handleChatbotKey(event) {
+    if (event.key === 'Enter') {
+      sendChatbotMessage();
+      event.preventDefault();
+    }
+  }
+
+  function sendChatbotMessage() {
+    const text = chatbotInput.value.trim();
+    if (!text) return;
+    addChatbotMessage(text, 'user');
+    chatbotInput.value = '';
+    setTimeout(() => {
+      addChatbotMessage('Terima kasih atas pesan Anda. Admin akan segera menghubungi Anda. 😊', 'admin');
+    }, 800);
+  }
+
+  document.getElementById('chatbotInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      sendChatbotMessage();
+      e.preventDefault();
+    }
+  });
+</script>
 {% endblock %}
